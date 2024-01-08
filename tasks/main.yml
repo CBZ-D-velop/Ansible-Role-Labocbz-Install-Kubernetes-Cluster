@@ -1,1 +1,16 @@
 ---
+- name: "Install Kubernetes"
+  block:
+  - name: "Add Kubernetes GPG apt Key"
+    ansible.builtin.apt_key:
+      url: "https://download.docker.com/linux/{{ ansible_os_family | lower }}/gpg"
+
+  - name: "Add Kubernetes Repository"
+    ansible.builtin.apt_repository:
+      repo: "deb [arch=amd64] https://download.docker.com/linux/{{ ansible_os_family | lower }} {{ ansible_distribution_release | lower }} stable"
+
+  - name: "Update apt and install docker-ce"
+    ansible.builtin.apt:
+      update_cache: true
+      name:
+        - "docker-ce"
