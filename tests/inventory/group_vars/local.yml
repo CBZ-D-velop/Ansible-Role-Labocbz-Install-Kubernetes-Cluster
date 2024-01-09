@@ -1,1 +1,11 @@
 ---
+inv_add_kubernetes_cluster_is_manager: false
+
+inv_add_kubernetes_cluster_advertise_address: "{{ hostvars[ansible_hostname]['ansible_default_ipv4']['address'] }}"
+inv_add_kubernetes_cluster_cert_sans: "{{ hostvars[ansible_hostname]['ansible_default_ipv4']['address'] }},{{ inventory_hostname }}"
+inv_add_kubernetes_cluster_cert_dir: "/etc/kubernetes/ssl"
+inv_add_kubernetes_cluster_node_name: "{{ inventory_hostname }}"
+inv_add_kubernetes_cluster_network_cidr: "10.200.0.0/16"
+inv_add_kubernetes_cluster_service_cidr: "10.201.0.0/16"
+inv_add_kubernetes_cluster_control_plane_endpoint: "{{ hostvars[ansible_hostname]['ansible_default_ipv4']['address'] }}"
+inv_add_kubernetes_cluster_service_dns: "cluster.local"

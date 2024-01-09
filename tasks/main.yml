@@ -163,7 +163,7 @@
 
 
 - name: "Join cluster as Manager"
-  when: npt (add_kubernetes_cluster_is_manager | default(false))
+  when: not (add_kubernetes_cluster_is_manager | default(false))
   block:
     - name: Joining new worker to master
       ansible.builtin.shell: "{{ token_command }} --certificate-key {{ cert_key }} --apiserver-advertise-address={{ add_kubernetes_cluster_advertise_address }}"

@@ -9,4 +9,3 @@ add_kubernetes_cluster_network_cidr: "10.200.0.0/16"
 add_kubernetes_cluster_service_cidr: "10.201.0.0/16"
 add_kubernetes_cluster_control_plane_endpoint: "{{ hostvars[ansible_hostname]['ansible_default_ipv4']['address'] }}"
 add_kubernetes_cluster_service_dns: "cluster.local"
-
