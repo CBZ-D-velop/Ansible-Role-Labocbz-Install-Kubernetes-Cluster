@@ -151,3 +151,4 @@ Here you can put your change to keep a trace of your work and decisions.
 
 * [Ansible role documentation](https://docs.ansible.com/ansible/latest/playbook_guide/playbooks_reuse_roles.html)
 * [Ansible Molecule documentation](https://molecule.readthedocs.io/)
+* [How to Setup Kubernetes Cluster on Debian 11](https://snapshooter.com/learn/linux/install-kubernetes)

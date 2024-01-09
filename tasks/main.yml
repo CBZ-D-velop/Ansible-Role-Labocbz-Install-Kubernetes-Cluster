@@ -1,16 +1,43 @@
 ---
+- name: "Update apt and install required packages"
+  ansible.builtin.apt:
+    update_cache: true
+    name:
+    - "apt-transport-https"
+    - "ca-certificates"
+    - "curl"
+    - "gnupg2"
+    - "lsb-release"
+    - "bridge-utils"
+
+- name: "Edit system vars"
+  loop:
+    - "net.bridge.bridge-nf-call-ip6tables"
+    - "net.bridge.bridge-nf-call-iptables"
+    - "net.ipv4.ip_forward"
+  loop_control:
+    loop_var: propery
+  ansible.posix.sysctl:
+    name: "{{ propery }}"
+    value: '1'
+    sysctl_set: true
+    state: present
+    reload: true
+
 - name: "Install Kubernetes"
   block:
-  - name: "Add Kubernetes GPG apt Key"
-    ansible.builtin.apt_key:
-      url: "https://download.docker.com/linux/{{ ansible_os_family | lower }}/gpg"
+    - name: "Add Kubernetes GPG apt Key"
+      ansible.builtin.apt_key:
+        url: "https://packages.cloud.google.com/apt/doc/apt-key.gpg"
 
-  - name: "Add Kubernetes Repository"
-    ansible.builtin.apt_repository:
-      repo: "deb [arch=amd64] https://download.docker.com/linux/{{ ansible_os_family | lower }} {{ ansible_distribution_release | lower }} stable"
+    - name: "Add Kubernetes Repository"
+      ansible.builtin.apt_repository:
+        repo: "deb http://apt.kubernetes.io/ kubernetes-xenial main"
 
-  - name: "Update apt and install docker-ce"
-    ansible.builtin.apt:
-      update_cache: true
-      name:
-        - "docker-ce"
+    - name: "Update apt and install Kubernetes packages"
+      ansible.builtin.apt:
+        update_cache: true
+        name:
+          - "kubelet"
+          - "kubeadm"
+          - "kubectl"
