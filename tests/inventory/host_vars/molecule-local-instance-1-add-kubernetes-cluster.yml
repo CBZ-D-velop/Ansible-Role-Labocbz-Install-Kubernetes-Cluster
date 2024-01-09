@@ -1,2 +1,4 @@
 ---
 ansible_ssh_port: 22
+
+add_kubernetes_cluster_is_manager: true
