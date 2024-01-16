@@ -11,6 +11,7 @@
         - "gnupg2"
         - "lsb-release"
         - "bridge-utils"
+        - "apt-show-versions"
 
     - name: "Edit system vars"
       loop:
@@ -43,6 +44,9 @@
         - "net.bridge.bridge-nf-call-iptables = 1"
         - "net.ipv4.ip_forward = 1"
         - "net.bridge.bridge-nf-call-ip6tables = 1"
+        - "net.ipv6.conf.all.disable_ipv6 = 1"
+        - "net.ipv6.conf.default.disable_ipv6 = 1"
+        - "net.ipv6.conf.lo.disable_ipv6 = 1"
       loop_control:
         loop_var: line
       ansible.builtin.lineinfile:
@@ -58,6 +62,20 @@
         modprobe overlay
         modprobe br_netfilter
         sysctl --system
+
+    - name: "fix containerd"
+      register: output
+      changed_when: output.rc != 0
+      ansible.builtin.shell: |
+        rm /etc/containerd/config.toml
+        systemctl restart containerd
+
+DL cri-docker
+cd /tmp
+wget https://github.com/Mirantis/cri-dockerd/releases/download/v0.3.9/cri-dockerd_0.3.9.3-0.debian-bullseye_amd64.deb
+apt install ./cri-dockerd_0.3.9.3-0.debian-bullseye_amd64.deb
+
+https://github.com/Mirantis/cri-dockerd/releases/tag/v0.3.9
 
 - name: "Install Kubernetes"
   block:
@@ -77,6 +95,17 @@
           - "kubeadm"
           - "kubectl"
 
+- name: Hold kubernetes packages
+  dpkg_selections:
+    name: "{{ item }}"
+    selection: hold
+  loop:
+    - kubelet
+    - kubeadm
+    - kubectl
+
+kubeadm config images pull --cri-socket unix:///var/run/cri-dockerd.sock
+
 - name: "Init the master / main / manager"
   when: add_kubernetes_cluster_is_manager | default(false)
   run_once: yes
@@ -86,6 +115,7 @@
       changed_when: output.rc != 0
       ansible.builtin.shell:
         kubeadm init \
+        --cri-socket unix:///var/run/cri-dockerd.sock 
         --apiserver-advertise-address={{ add_kubernetes_cluster_advertise_address }} \
         --apiserver-cert-extra-sans={{ add_kubernetes_cluster_cert_sans }} \
         --cert-dir={{ add_kubernetes_cluster_cert_dir }} \
@@ -105,6 +135,26 @@
         url: "https://{{ add_kubernetes_cluster_advertise_address }}:6443"
         validate_certs: no
         status_code: [403]
+
+    - name: "Create .kube directory"
+      ansible.builtin.file:
+        path: "/root/.kube"
+        state: directory
+        owner: "root"
+        group: "root"
+        mode: "0700"
+
+    - name: "Copy admin.conf to .kube/config"
+      ansible.builtin.copy:
+        src: "/tmp/.ansible/add_kubernetes_cluster/admin.conf"
+        dest: "/root/.kube/config"
+        mode: "0700"
+
+    - name: "Fetch admin.conf on controller node"
+      ansible.builtin.fetch:
+        src: "/etc/kubernetes/admin.conf"
+        dest: "/tmp/.ansible/add_kubernetes_cluster/admin.conf"
+        flat: yes
 
     - name: "Add CNI - kuberouter"
       ansible.builtin.shell: |
@@ -135,35 +185,64 @@
         cert_key: "{{ cert_key_output.stdout_lines[0] }}"
         token_command: "{{ token_command_output.stdout_lines[0] }}"
 
-    - name: "Fetch admin.conf on controller node"
-      ansible.builtin.fetch:
-        src: "/etc/kubernetes/admin.conf"
-        dest: "/tmp/.ansible/add_kubernetes_cluster/admin.conf"
-        flat: yes
+#- name: "Join cluster as Manager"
+#  when: (add_kubernetes_cluster_is_manager | default(false)) and (inventory_hostname != manager_host)
+#  block:1y
 
-- name: "Join cluster as Manager"
-  when: (add_kubernetes_cluster_is_manager | default(false)) and (inventory_hostname != manager_host))
-  block:
-    - name: "Create .kube directory"
-      ansible.builtin.file:
-        path: "/root/.kube"
-        state: directory
-        owner: "root"
-        group: "root"
-        mode: "0700"
+#
+#    - name: Joinning new Manager to Manager
+#      ansible.builtin.shell: "{{ token_command }} --control-plane --certificate-key {{ cert_key }} --apiserver-advertise-address={{ add_kubernetes_cluster_advertise_address }}"
+#
+#
+#- name: "Join cluster as Manager"
+#  when: (not (add_kubernetes_cluster_is_manager | default(false))) and (inventory_hostname != manager_host)
+#  block:
+#    - name: Joining new worker to master
+#      ansible.builtin.shell: "{{ token_command }} --certificate-key {{ cert_key }} --apiserver-advertise-address={{ add_kubernetes_cluster_advertise_address }}"
+#
 
-    - name: "Copy admin.conf to .kube/config"
-      ansible.builtin.copy:
-        src: "/tmp/.ansible/add_kubernetes_cluster/admin.conf"
-        dest: "/root/.kube/config"
-        mode: "0700"
+kubeadm init --v=5 \
+--node-name=clu-kubernetes-master-1 \
+--pod-network-cidr=192.168.0.0/16 \
+--kubernetes-version 1.24.0
 
-    - name: Joinning new Manager to Manager
-      ansible.builtin.shell: "{{ token_command }} --control-plane --certificate-key {{ cert_key }} --apiserver-advertise-address={{ add_kubernetes_cluster_advertise_address }}"
+kubeadm init --v=5 \
+--apiserver-advertise-address=10.1.7.12 \
+--node-name=clu-kubernetes-master-1 \
+--pod-network-cidr=192.168.0.0/16 \
+--control-plane-endpoint=10.1.7.12 \
+--kubernetes-version 1.24.0
+
+kubeadm init --v=5 \
+--pod-network-cidr=10.100.0.0/16 \
+--kubernetes-version 1.24.0
+
+kubeadm init --v=5 \
+--node-name=clu-kubernetes-master-1 \
+--pod-network-cidr=192.168.0.0/16 \
+--control-plane-endpoint=10.1.7.12 \
+--kubernetes-version 1.24.0
 
 
-- name: "Join cluster as Manager"
-  when: not (add_kubernetes_cluster_is_manager | default(false))
-  block:
-    - name: Joining new worker to master
-      ansible.builtin.shell: "{{ token_command }} --certificate-key {{ cert_key }} --apiserver-advertise-address={{ add_kubernetes_cluster_advertise_address }}"
+/etc/default/grub
+replace
+by
+GRUB_CMDLINE_LINUX_DEFAULT="maybe-ubiquity"
+GRUB_CMDLINE_LINUX_DEFAULT="ipv6.disable=1"
+update-grub
+
+echo "
+net.ipv6.conf.all.disable_ipv6=1
+net.ipv6.conf.default.disable_ipv6=1
+net.ipv6.conf.lo.disable_ipv6=1
+" | sudo tee -a /etc/sysctl.conf
+
+sudo systemctl restart systemd-sysctl
+
+
+editer le toml de containerd pour 
+SystemdCgroup = true
+SystemdCgroup = false
+
+kubectl get nodes
+kubectl get pods --all-namespaces
