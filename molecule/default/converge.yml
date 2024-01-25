@@ -9,18 +9,17 @@
         dest: "/tmp/hosts-from-controller"
         mode: 0700
 
-    - name: "Include labocbz.add_kubernetes_cluster"
+    - name: "Include labocbz.install_kubernetes_cluster"
       tags:
-        - "labocbz.add_kubernetes_cluster"
+        - "labocbz.install_kubernetes_cluster"
       vars:
-        add_kubernetes_cluster_is_manager: "{{ inv_add_kubernetes_cluster_is_manager }}"
-        add_kubernetes_cluster_advertise_address: "{{ inv_add_kubernetes_cluster_advertise_address }}"
-        add_kubernetes_cluster_cert_sans: "{{ inv_add_kubernetes_cluster_cert_sans }}"
-        add_kubernetes_cluster_cert_dir: "{{ inv_add_kubernetes_cluster_cert_dir }}"
-        add_kubernetes_cluster_node_name: "{{ inv_add_kubernetes_cluster_node_name }}"
-        add_kubernetes_cluster_network_cidr: "{{ inv_add_kubernetes_cluster_network_cidr }}"
-        add_kubernetes_cluster_service_cidr: "{{ inv_add_kubernetes_cluster_service_cidr }}"
-        add_kubernetes_cluster_control_plane_endpoint: "{{ inv_add_kubernetes_cluster_control_plane_endpoint }}"
-        add_kubernetes_cluster_service_dns: "{{ inv_add_kubernetes_cluster_service_dns }}"
+        install_kubernetes_cluster_is_manager: "{{ inv_install_kubernetes_cluster_is_manager }}"
+        install_kubernetes_cluster_docker_script_version: "{{ inv_install_kubernetes_cluster_docker_script_version }}"
+        install_kubernetes_cluster_data_dir: "{{ inv_install_kubernetes_cluster_data_dir }}"
+        install_kubernetes_cluster_cluster_cidr: "{{ inv_install_kubernetes_cluster_cluster_cidr }}"
+        install_kubernetes_cluster_service_cidr: "{{ inv_install_kubernetes_cluster_service_cidr }}"
+        install_kubernetes_cluster_service_node_port_range: "{{ inv_install_kubernetes_cluster_service_node_port_range }}"
+        install_kubernetes_cluster_cluster_dns: "{{ inv_install_kubernetes_cluster_cluster_dns }}"
+        install_kubernetes_cluster_cluster_domain: "{{ inv_install_kubernetes_cluster_cluster_domain }}"
       ansible.builtin.include_role:
-        name: "labocbz.add_kubernetes_cluster"
+        name: "labocbz.install_kubernetes_cluster"

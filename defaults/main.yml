@@ -1,11 +1,11 @@
 ---
-add_kubernetes_cluster_is_manager: false
+install_kubernetes_cluster_is_manager: false
 
-add_kubernetes_cluster_advertise_address: "{{ hostvars[inventory_hostname]['ansible_default_ipv4']['address'] }}"
-add_kubernetes_cluster_cert_sans: "{{ hostvars[inventory_hostname]['ansible_default_ipv4']['address'] }},{{ inventory_hostname }}"
-add_kubernetes_cluster_cert_dir: "/etc/kubernetes/ssl"
-add_kubernetes_cluster_node_name: "{{ inventory_hostname }}"
-add_kubernetes_cluster_network_cidr: "10.200.0.0/16"
-add_kubernetes_cluster_service_cidr: "10.201.0.0/16"
-add_kubernetes_cluster_control_plane_endpoint: "{{ hostvars[inventory_hostname]['ansible_default_ipv4']['address'] }}"
-add_kubernetes_cluster_service_dns: "cluster.local"
+install_kubernetes_cluster_docker_script_version: "20.10"
+
+install_kubernetes_cluster_data_dir: "/var/lib/rancher/k3s"
+install_kubernetes_cluster_cluster_cidr: "10.42.0.0/16"
+install_kubernetes_cluster_service_cidr: "10.43.0.0/16"
+install_kubernetes_cluster_service_node_port_range: "30000-32767"
+install_kubernetes_cluster_cluster_dns: "10.43.0.10"
+install_kubernetes_cluster_cluster_domain: "cluster.local"

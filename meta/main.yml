@@ -1,7 +1,7 @@
 galaxy_info:
   author: "Lord Robin Crombez"
   namespace: "labocbz"
-  role_name: "add_kubernetes_cluster"
+  role_name: "install_kubernetes_cluster"
   description: "An Ansible role to install and configure a Kubernetes cluster on your hosts."
   company: "Labo-CBZ"
 

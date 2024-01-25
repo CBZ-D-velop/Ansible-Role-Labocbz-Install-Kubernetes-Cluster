@@ -1,248 +1,44 @@
 ---
-- name: "Prepare host"
-  block:
-    - name: "Update apt and install required packages"
-      ansible.builtin.apt:
-        update_cache: true
-        name:
-        - "apt-transport-https"
-        - "ca-certificates"
-        - "curl"
-        - "gnupg2"
-        - "lsb-release"
-        - "bridge-utils"
-        - "apt-show-versions"
+- name: "Start by install Docker"
+  register: output
+  changed_when: output.rc != 0
+  ansible.builtin.shell: |
+    curl https://releases.rancher.com/install-docker/{{ install_kubernetes_cluster_docker_script_version }}.sh | sh
 
-    - name: "Edit system vars"
-      loop:
-        - "net.bridge.bridge-nf-call-ip6tables"
-        - "net.bridge.bridge-nf-call-iptables"
-        - "net.ipv4.ip_forward"
-      loop_control:
-        loop_var: propery
-      ansible.posix.sysctl:
-        name: "{{ propery }}"
-        value: '1'
-        sysctl_set: true
-        state: present
-        reload: true
-
-    - name: "Edit /etc/modules-load.d/containerd.conf"
-      loop:
-        - "br_netfilter"
-        - "overlay"
-      loop_control:
-        loop_var: line
-      ansible.builtin.lineinfile:
-        path: "/etc/modules-load.d/containerd.conf"
-        line: "{{ line }}"
-        create: yes
-        insertafter: EOF
-
-    - name: "Edit /etc/sysctl.d/99-kubernetes-cri.conf"
-      loop:
-        - "net.bridge.bridge-nf-call-iptables = 1"
-        - "net.ipv4.ip_forward = 1"
-        - "net.bridge.bridge-nf-call-ip6tables = 1"
-        - "net.ipv6.conf.all.disable_ipv6 = 1"
-        - "net.ipv6.conf.default.disable_ipv6 = 1"
-        - "net.ipv6.conf.lo.disable_ipv6 = 1"
-      loop_control:
-        loop_var: line
-      ansible.builtin.lineinfile:
-        path: "/etc/sysctl.d/99-kubernetes-cri.conf"
-        line: "{{ line }}"
-        create: yes
-        insertafter: EOF
-
-    - name: "Edit system vars"
-      register: output
-      changed_when: output.rc != 0
-      ansible.builtin.shell: |
-        modprobe overlay
-        modprobe br_netfilter
-        sysctl --system
-
-    - name: "fix containerd"
-      register: output
-      changed_when: output.rc != 0
-      ansible.builtin.shell: |
-        rm /etc/containerd/config.toml
-        systemctl restart containerd
-
-DL cri-docker
-cd /tmp
-wget https://github.com/Mirantis/cri-dockerd/releases/download/v0.3.9/cri-dockerd_0.3.9.3-0.debian-bullseye_amd64.deb
-apt install ./cri-dockerd_0.3.9.3-0.debian-bullseye_amd64.deb
-
-https://github.com/Mirantis/cri-dockerd/releases/tag/v0.3.9
-
-- name: "Install Kubernetes"
-  block:
-    - name: "Add Kubernetes GPG apt Key"
-      ansible.builtin.apt_key:
-        url: "https://packages.cloud.google.com/apt/doc/apt-key.gpg"
-
-    - name: "Add Kubernetes Repository"
-      ansible.builtin.apt_repository:
-        repo: "deb http://apt.kubernetes.io/ kubernetes-xenial main"
-
-    - name: "Update apt and install Kubernetes packages"
-      ansible.builtin.apt:
-        update_cache: true
-        name:
-          - "kubelet"
-          - "kubeadm"
-          - "kubectl"
-
-- name: Hold kubernetes packages
-  dpkg_selections:
-    name: "{{ item }}"
-    selection: hold
-  loop:
-    - kubelet
-    - kubeadm
-    - kubectl
-
-kubeadm config images pull --cri-socket unix:///var/run/cri-dockerd.sock
-
-- name: "Init the master / main / manager"
-  when: add_kubernetes_cluster_is_manager | default(false)
+- name: "Init the cluster"
   run_once: yes
+  when: install_kubernetes_cluster_is_manager | default(false)
   block:
-    - name: "Init the cluster"
+    - name: "Init the cluster with the command line shell"
       register: output
       changed_when: output.rc != 0
       ansible.builtin.shell:
-        kubeadm init \
-        --cri-socket unix:///var/run/cri-dockerd.sock 
-        --apiserver-advertise-address={{ add_kubernetes_cluster_advertise_address }} \
-        --apiserver-cert-extra-sans={{ add_kubernetes_cluster_cert_sans }} \
-        --cert-dir={{ add_kubernetes_cluster_cert_dir }} \
-        --node-name={{ add_kubernetes_cluster_node_name }} \
-        --pod-network-cidr={{ add_kubernetes_cluster_network_cidr }} \
-        --service-cidr={{ add_kubernetes_cluster_service_cidr }} \
-        --control-plane-endpoint={{ add_kubernetes_cluster_control_plane_endpoint }} \
-        --service-dns-domain={{ add_kubernetes_cluster_service_dns }} \
-        --upload-certs
+        curl -sfL https://get.k3s.io | sh -s - \
+        --docker \
+        --data-dir {{ install_kubernetes_cluster_data_dir }} \
+        --cluster-cidr {{ install_kubernetes_cluster_cluster_cidr }} \
+        --service-cidr {{ install_kubernetes_cluster_service_cidr }} \
+        --service-node-port-range {{ install_kubernetes_cluster_service_node_port_range }} \
+        --cluster-dns {{ install_kubernetes_cluster_cluster_dns }} \
+        --cluster-domain {{ install_kubernetes_cluster_cluster_domain }}
 
-    - name: "Check if master is initialized"
+    - name: "Check if server is initialized"
       register: result
       until: "result.status == 403"
       retries: 5
       delay: 5
       ansible.builtin.uri:
-        url: "https://{{ add_kubernetes_cluster_advertise_address }}:6443"
+        url: "https://{{ inventory_hostname }}:6443"
         validate_certs: no
         status_code: [403]
 
-    - name: "Create .kube directory"
-      ansible.builtin.file:
-        path: "/root/.kube"
-        state: directory
-        owner: "root"
-        group: "root"
-        mode: "0700"
-
-    - name: "Copy admin.conf to .kube/config"
-      ansible.builtin.copy:
-        src: "/tmp/.ansible/add_kubernetes_cluster/admin.conf"
-        dest: "/root/.kube/config"
-        mode: "0700"
-
-    - name: "Fetch admin.conf on controller node"
-      ansible.builtin.fetch:
-        src: "/etc/kubernetes/admin.conf"
-        dest: "/tmp/.ansible/add_kubernetes_cluster/admin.conf"
-        flat: yes
-
-    - name: "Add CNI - kuberouter"
-      ansible.builtin.shell: |
-        kubectl apply -f https://raw.githubusercontent.com/cloudnativelabs/kube-router/master/daemonset/kubeadm-kuberouter.yaml
-
-    - name: "Check if Manager is ready"
+    - name: "Get the join token"
       register: output
-      retries: 100
-      delay: 5
-      until: output.stdout_lines | count > 0
       changed_when: output.rc != 0
-      ansible.builtin.shell: |
-        kubectl get nodes | grep " Ready"
+      ansible.builtin.shell:
+        cat /var/lib/rancher/k3s/server/node-token
 
-    - name: "Get cert key"
-      register: cert_key_output
-      ansible.builtin.command: |
-        kubeadm init phase upload-certs --upload-certs
-
-    - name: "Get token command"
-      register: token_command_output
-      ansible.builtin.command: |
-        kubeadm token create --print-join-command
-
-    - name: "Set fatcs"
+    - name: "Set facts"
       ansible.legacy.set_fact:
-        manager_host: "{{ inventory_hostname }}"
-        cert_key: "{{ cert_key_output.stdout_lines[0] }}"
-        token_command: "{{ token_command_output.stdout_lines[0] }}"
-
-#- name: "Join cluster as Manager"
-#  when: (add_kubernetes_cluster_is_manager | default(false)) and (inventory_hostname != manager_host)
-#  block:1y
-
-#
-#    - name: Joinning new Manager to Manager
-#      ansible.builtin.shell: "{{ token_command }} --control-plane --certificate-key {{ cert_key }} --apiserver-advertise-address={{ add_kubernetes_cluster_advertise_address }}"
-#
-#
-#- name: "Join cluster as Manager"
-#  when: (not (add_kubernetes_cluster_is_manager | default(false))) and (inventory_hostname != manager_host)
-#  block:
-#    - name: Joining new worker to master
-#      ansible.builtin.shell: "{{ token_command }} --certificate-key {{ cert_key }} --apiserver-advertise-address={{ add_kubernetes_cluster_advertise_address }}"
-#
-
-kubeadm init --v=5 \
---node-name=clu-kubernetes-master-1 \
---pod-network-cidr=192.168.0.0/16 \
---kubernetes-version 1.24.0
-
-kubeadm init --v=5 \
---apiserver-advertise-address=10.1.7.12 \
---node-name=clu-kubernetes-master-1 \
---pod-network-cidr=192.168.0.0/16 \
---control-plane-endpoint=10.1.7.12 \
---kubernetes-version 1.24.0
-
-kubeadm init --v=5 \
---pod-network-cidr=10.100.0.0/16 \
---kubernetes-version 1.24.0
-
-kubeadm init --v=5 \
---node-name=clu-kubernetes-master-1 \
---pod-network-cidr=192.168.0.0/16 \
---control-plane-endpoint=10.1.7.12 \
---kubernetes-version 1.24.0
-
-
-/etc/default/grub
-replace
-by
-GRUB_CMDLINE_LINUX_DEFAULT="maybe-ubiquity"
-GRUB_CMDLINE_LINUX_DEFAULT="ipv6.disable=1"
-update-grub
-
-echo "
-net.ipv6.conf.all.disable_ipv6=1
-net.ipv6.conf.default.disable_ipv6=1
-net.ipv6.conf.lo.disable_ipv6=1
-" | sudo tee -a /etc/sysctl.conf
-
-sudo systemctl restart systemd-sysctl
-
-
-editer le toml de containerd pour 
-SystemdCgroup = true
-SystemdCgroup = false
-
-kubectl get nodes
-kubectl get pods --all-namespaces
+        join_token: "{{ token_output.stdout }}"
+        server_node: "{{ inventory_hostname }}"

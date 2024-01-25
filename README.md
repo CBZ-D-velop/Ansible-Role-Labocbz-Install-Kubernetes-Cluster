@@ -1,4 +1,4 @@
-# Ansible role: labocbz.add_kubernetes_cluster
+# Ansible role: labocbz.install_kubernetes_cluster
 
 ![Licence Status](https://img.shields.io/badge/licence-MIT-brightgreen)
 ![CI Status](https://img.shields.io/badge/CI-success-brightgreen)
@@ -152,3 +152,6 @@ Here you can put your change to keep a trace of your work and decisions.
 * [Ansible role documentation](https://docs.ansible.com/ansible/latest/playbook_guide/playbooks_reuse_roles.html)
 * [Ansible Molecule documentation](https://molecule.readthedocs.io/)
 * [How to Setup Kubernetes Cluster on Debian 11](https://snapshooter.com/learn/linux/install-kubernetes)
+* [K3S](https://k3s.io/)
+* [Doc K3S](https://docs.k3s.io/)
+* [Advanced K3S](https://docs.k3s.io/advanced)
