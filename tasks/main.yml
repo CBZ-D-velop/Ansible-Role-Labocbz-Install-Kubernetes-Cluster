@@ -13,32 +13,130 @@
       register: output
       changed_when: output.rc != 0
       ansible.builtin.shell:
-        curl -sfL https://get.k3s.io | sh -s - \
+        curl -sfL https://get.k3s.io | sh -s - server \
+        --cluster-init \
         --docker \
-        --data-dir {{ install_kubernetes_cluster_data_dir }} \
-        --cluster-cidr {{ install_kubernetes_cluster_cluster_cidr }} \
-        --service-cidr {{ install_kubernetes_cluster_service_cidr }} \
-        --service-node-port-range {{ install_kubernetes_cluster_service_node_port_range }} \
-        --cluster-dns {{ install_kubernetes_cluster_cluster_dns }} \
-        --cluster-domain {{ install_kubernetes_cluster_cluster_domain }}
-
+        --data-dir "{{ install_kubernetes_cluster_data_dir }}" \
+        --cluster-cidr "{{ install_kubernetes_cluster_cluster_cidr }}" \
+        --service-cidr "{{ install_kubernetes_cluster_service_cidr }}" \
+        --service-node-port-range "{{ install_kubernetes_cluster_service_node_port_range }}" \
+        --cluster-dns "{{ install_kubernetes_cluster_cluster_dns }}" \
+        {% for tls_san in install_kubernetes_cluster_tls_sans %}
+        --tls-san "{{ tls_san }}" \
+        {% endfor %}
+        --cluster-domain "{{ install_kubernetes_cluster_cluster_domain }}"
     - name: "Check if server is initialized"
       register: result
-      until: "result.status == 403"
-      retries: 5
-      delay: 5
+      until: "result.status == 401"
+      retries: 10
+      delay: 10
       ansible.builtin.uri:
         url: "https://{{ inventory_hostname }}:6443"
         validate_certs: no
-        status_code: [403]
+        status_code: [401]
 
-    - name: "Get the join token"
-      register: output
-      changed_when: output.rc != 0
+    - name: "Get the join agent token"
+      register: token_agent_output
+      changed_when: token_agent_output.rc != 0
       ansible.builtin.shell:
-        cat /var/lib/rancher/k3s/server/node-token
+        cat {{ install_kubernetes_cluster_data_dir }}/server/agent-token
+
+    - name: "Get the join server token"
+      register: join_node_token
+      changed_when: join_node_token.rc != 0
+      ansible.builtin.shell:
+        cat {{ install_kubernetes_cluster_data_dir }}/server/node-token
 
     - name: "Set facts"
       ansible.legacy.set_fact:
-        join_token: "{{ token_output.stdout }}"
+        join_agent_token: "{{ token_agent_output.stdout }}"
+        join_node_token: "{{ join_node_token.stdout }}"
         server_node: "{{ inventory_hostname }}"
+
+- name: "Join the cluster as SERVER"
+  when: ((install_kubernetes_cluster_is_manager | default(false)) and (inventory_hostname != server_node ))
+  throttle: 1
+  block:
+    - name: "Join the cluster as SERVER"
+      register: output
+      changed_when: output.rc != 0
+      ansible.builtin.shell:
+        curl -sfL https://get.k3s.io | sh -s - server \
+        --docker \
+        --data-dir "{{ install_kubernetes_cluster_data_dir }}" \
+        --cluster-cidr "{{ install_kubernetes_cluster_cluster_cidr }}" \
+        --service-cidr "{{ install_kubernetes_cluster_service_cidr }}" \
+        --service-node-port-range "{{ install_kubernetes_cluster_service_node_port_range }}" \
+        --cluster-dns "{{ install_kubernetes_cluster_cluster_dns }}" \
+        --cluster-domain "{{ install_kubernetes_cluster_cluster_domain }}" \
+        --server "https://{{ server_node }}:6443" \
+        --token "{{ join_node_token }}"
+
+- name: "Join the cluster as AGENT"
+  when: not (install_kubernetes_cluster_is_manager | default(false))
+  throttle: 1
+  block:
+    - name: "Join the cluster as AGENT"
+      register: output
+      changed_when: output.rc != 0
+      ansible.builtin.shell:
+        curl -sfL https://get.k3s.io | sh -s - agent \
+        --docker \
+        --data-dir "{{ install_kubernetes_cluster_data_dir }}" \
+        --server "https://{{ server_node }}:6443" \
+        --token "{{ join_agent_token }}"
+
+- name: "Install Helm and deploy Portainer"
+  when: install_kubernetes_cluster_is_manager
+  block:
+    - name: "Get the kubeconfig from first server"
+      when: inventory_hostname == server_node
+      ansible.builtin.fetch:
+        src: "/etc/rancher/k3s/k3s.yaml"
+        dest: "/tmp/.ansible/install_kubernetes_cluster/k3s.yaml"
+        flat: yes
+        validate_checksum: yes
+
+    - name: "Check if /root/.kube destination exist"
+      register: kube_dest_stat
+      ansible.builtin.stat:
+        path: "/root/.kube"
+
+    - name: "Create /root/.kube destination"
+      when: not kube_dest_stat.stat.exists
+      ansible.builtin.file:
+        path: "/root/.kube"
+        state: directory
+        recurse: yes
+        owner: "root"
+        group: "root"
+        mode: "0600"
+
+    - name: "Import k3s.yaml"
+      ansible.builtin.copy:
+        dest: "/root/.kube/k3s.yaml"
+        src: "/tmp/.ansible/install_kubernetes_cluster/k3s.yaml"
+        owner: "root"
+        group: "root"
+        mode: "0600"
+
+    - name: "Install Helm"
+      register: output
+      changed_when: output.rc != 0
+      ansible.builtin.shell: |
+        curl -fsSL https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash
+
+    - name: "Import portainer.yml manifest file"
+      ansible.builtin.template:
+        src: "templates/portainer.yml.j2"
+        dest: "/etc/rancher/portainer.yml"
+        owner: "root"
+        group: "root"
+        mode: "0700"
+
+    - name: "Install Portainer with manifest / kubectl"
+      register: output
+      changed_when: output.rc != 0
+      run_once: yes
+      ansible.builtin.shell: |
+        kubectl apply -n portainer -f /etc/rancher/portainer.yml
