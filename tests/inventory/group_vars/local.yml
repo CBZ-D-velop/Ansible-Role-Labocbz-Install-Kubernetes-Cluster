@@ -3,4 +3,3 @@ inv_install_kubernetes_cluster__tls_sans:
   - "molecule-local-instance-1-install-kubernetes-cluster"
   - "molecule-local-instance-2-install-kubernetes-cluster"
   - "molecule-local-instance-3-install-kubernetes-cluster"
-

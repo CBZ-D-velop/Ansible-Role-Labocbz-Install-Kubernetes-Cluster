@@ -10,6 +10,7 @@
   changed_when: output.rc != 0
   when: output_docker.rc != 0
   ansible.builtin.shell: |
+    set -o pipefail
     curl https://releases.rancher.com/install-docker/{{ install_kubernetes_cluster__docker_script_version }}.sh | sh
 
 - name: "Init the cluster"
@@ -19,7 +20,8 @@
     - name: "Init the cluster with the command line shell"
       register: output
       changed_when: output.rc != 0
-      ansible.builtin.shell:
+      ansible.builtin.shell: |
+        set -o pipefail
         curl -sfL https://get.k3s.io | sh -s - server \
         --cluster-init \
         --docker \
@@ -46,13 +48,13 @@
     - name: "Get the join agent token"
       register: token_agent_output
       changed_when: token_agent_output.rc != 0
-      ansible.builtin.shell:
+      ansible.builtin.command:
         cat {{ install_kubernetes_cluster__data_dir }}/server/agent-token
 
     - name: "Get the join server token"
       register: join_node_token
       changed_when: join_node_token.rc != 0
-      ansible.builtin.shell:
+      ansible.builtin.command:
         cat {{ install_kubernetes_cluster__data_dir }}/server/node-token
 
     - name: "Set facts"
@@ -68,7 +70,8 @@
     - name: "Join the cluster as SERVER"
       register: output
       changed_when: output.rc != 0
-      ansible.builtin.shell:
+      ansible.builtin.shell: |
+        set -o pipefail
         curl -sfL https://get.k3s.io | sh -s - server \
         --docker \
         --data-dir "{{ install_kubernetes_cluster__data_dir }}" \
@@ -88,6 +91,7 @@
       register: output
       changed_when: output.rc != 0
       ansible.builtin.shell:
+        set -o pipefail
         curl -sfL https://get.k3s.io | sh -s - agent \
         --docker \
         --data-dir "{{ install_kubernetes_cluster__data_dir }}" \
@@ -132,6 +136,7 @@
       register: output
       changed_when: output.rc != 0
       ansible.builtin.shell: |
+        set -o pipefail
         curl -fsSL https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash
 
     - name: "Import portainer.yml manifest file"
