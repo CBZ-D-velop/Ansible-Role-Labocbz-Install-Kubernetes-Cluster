@@ -8,12 +8,9 @@ driver:
   name: "docker"
 
 platforms:
-  - name: "molecule-local-instance-1-install-kubernetes-cluster"
-    #image: "robincbz/debian-12-ansible:latest"
-    image: "robincbz/docker-dind-ansible:latest"
-    hostname: "molecule-local-instance-1-install-kubernetes-cluster"
-    #published_ports:
-    #  - "0.0.0.0:8181:8181/tcp"
+  - name: "molecule-cicd-docker-dind-instance-1-install-kubernetes-cluster"
+    image: "${NEXUS_REPOS_DOCKER_REGISTRY}/${DOCKER_IMAGE_DOCKER_DIND_ANSIBLE}"
+    hostname: "molecule-cicd-docker-dind-instance-1-install-kubernetes-cluster"
     privileged: true
     pre_build_image: true
     command: "/sbin/init"
@@ -28,12 +25,9 @@ platforms:
     networks:
       - name: "molecule-default-install-kubernetes-cluster"
 
-  - name: "molecule-local-instance-2-install-kubernetes-cluster"
-    #image: "robincbz/debian-12-ansible:latest"
-    image: "robincbz/docker-dind-ansible:latest"
-    hostname: "molecule-local-instance-2-install-kubernetes-cluster"
-    #published_ports:
-    #  - "0.0.0.0:8181:8181/tcp"
+  - name: "molecule-cicd-docker-dind-instance-2-install-kubernetes-cluster"
+    image: "${NEXUS_REPOS_DOCKER_REGISTRY}/${DOCKER_IMAGE_DOCKER_DIND_ANSIBLE}"
+    hostname: "molecule-cicd-docker-dind-instance-2-install-kubernetes-cluster"
     privileged: true
     pre_build_image: true
     command: "/sbin/init"
@@ -48,12 +42,9 @@ platforms:
     networks:
       - name: "molecule-default-install-kubernetes-cluster"
 
-  - name: "molecule-local-instance-3-install-kubernetes-cluster"
-    #image: "robincbz/debian-12-ansible:latest"
-    image: "robincbz/docker-dind-ansible:latest"
-    hostname: "molecule-local-instance-3-install-kubernetes-cluster"
-    #published_ports:
-    #  - "0.0.0.0:8181:8181/tcp"
+  - name: "molecule-cicd-docker-dind-instance-3-install-kubernetes-cluster"
+    image: "${NEXUS_REPOS_DOCKER_REGISTRY}/${DOCKER_IMAGE_DOCKER_DIND_ANSIBLE}"
+    hostname: "molecule-cicd-docker-dind-instance-3-install-kubernetes-cluster"
     privileged: true
     pre_build_image: true
     command: "/sbin/init"
@@ -76,11 +67,11 @@ provisioner:
       group_vars: "../../tests/inventory/group_vars/"
       host_vars: "../../tests/inventory/host_vars/"
   options:
-    extra-vars: "@./tests/tower/tower.yml"
+    extra-vars: "@./../../tests/tower/tower.yml"
   log: ${MOLECULE_ANSIBLE_LOG:-true}
   env:
     ANSIBLE_CONFIG: "../../.ansible.cfg"
-    ANSIBLE_FORCE_COLOR: "True"
+    ANSIBLE_FORCE_COLOR: "true"
     # disable nologs
     MOLECULE_NOLOG: 0
     # disable destroy
@@ -94,10 +85,11 @@ verifier:
   name: "ansible"
 
 scenario:
-  name: "default"
+  name: "cicd-docker-dind"
   test_sequence:
     - "destroy"
     - "syntax"
+    - "dependency"
     - "create"
     - "prepare"
     - "converge"
