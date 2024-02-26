@@ -98,8 +98,8 @@
         --server "https://{{ server_node }}:6443" \
         --token "{{ join_agent_token }}"
 
-- name: "Install Helm and deploy Portainer"
-  when: install_kubernetes_cluster__is_manager
+- name: "Install Helm"
+  when: install_kubernetes_cluster__is_manager | default(false)
   block:
     - name: "Get the kubeconfig from first server"
       when: inventory_hostname == server_node
@@ -126,7 +126,7 @@
 
     - name: "Import k3s.yaml"
       ansible.builtin.copy:
-        dest: "/root/.kube/k3s.yaml"
+        dest: "/root/.kube/config"
         src: "/tmp/.ansible/install_kubernetes_cluster/k3s.yaml"
         owner: "root"
         group: "root"
@@ -139,17 +139,72 @@
         set -o pipefail
         curl -fsSL https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash
 
-    - name: "Import portainer.yml manifest file"
-      ansible.builtin.template:
-        src: "templates/portainer.yml.j2"
-        dest: "/etc/rancher/portainer.yml"
-        owner: "root"
-        group: "root"
-        mode: "0700"
+- name: "Handle controllers"
+  when: ansible_distribution == "Ubuntu" or ansible_distribution == "Debian"
+  block:
+    - name: "Use Portainer as controller"
+      when: (install_kubernetes_cluster__is_manager | default(false)) and ((install_kubernetes_cluster__use_portainer | default(false)) and not (install_kubernetes_cluster__use_rancher | default(false)))
+      block:
+        - name: "Import portainer.yml manifest file"
+          ansible.builtin.template:
+            src: "templates/portainer.yml.j2"
+            dest: "/etc/rancher/portainer.yml"
+            owner: "root"
+            group: "root"
+            mode: "0700"
 
-    - name: "Install Portainer with manifest / kubectl"
-      register: output
-      changed_when: output.rc != 0
-      run_once: yes
-      ansible.builtin.shell: |
-        kubectl apply -n portainer -f /etc/rancher/portainer.yml
+        - name: "Install Portainer with manifest / kubectl"
+          register: output
+          changed_when: output.rc != 0
+          run_once: yes
+          ansible.builtin.shell: |
+            kubectl apply -n portainer -f /etc/rancher/portainer.yml
+
+    - name: "Use Rancher as controller"
+      when: (install_kubernetes_cluster__is_manager | default(false)) and ((install_kubernetes_cluster__use_rancher | default(false)) and not (install_kubernetes_cluster__use_portainer | default(false)))
+      block:
+        - name: "Add Rancher repos"
+          kubernetes.core.helm_repository:
+            name: "rancher-latest"
+            repo_url: "https://releases.rancher.com/server-charts/latest"
+            force_update: true
+
+        - name: "Add Jetstack repos"
+          kubernetes.core.helm_repository:
+            name: "jetstack"
+            repo_url: "https://charts.jetstack.io"
+            force_update: true
+
+        - name: "Create namespace"
+          register: output
+          changed_when: output.rc != 0
+          ignore_errors: yes
+          run_once: yes
+          ansible.builtin.command: |
+            kubectl create namespace cattle-system
+
+        - name: "Create add cert-manager"
+          register: output
+          changed_when: output.rc != 0
+          run_once: yes
+          ansible.builtin.command: |
+            kubectl apply -f https://github.com/cert-manager/cert-manager/releases/download/{{ install_kubernetes_cluster__cert_manager_version }}/cert-manager.crds.yaml
+
+        - name: "Install cert-manager"
+          register: output
+          changed_when: output.rc != 0
+          run_once: yes
+          ansible.builtin.command: |
+            helm install cert-manager jetstack/cert-manager \
+              --namespace cert-manager \
+              --create-namespace
+
+        - name: "Deploy Rancher with Helm"
+          register: output
+          changed_when: output.rc != 0
+          run_once: yes
+          ansible.builtin.command: |
+            helm install rancher rancher-latest/rancher \
+              --namespace cattle-system \
+              --set hostname="{{ install_kubernetes_cluster__rancher_hostname }}" \
+              --set bootstrapPassword="{{ install_kubernetes_cluster__rancher_admin_password }}"

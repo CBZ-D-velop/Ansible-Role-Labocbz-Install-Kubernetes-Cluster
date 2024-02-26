@@ -194,7 +194,8 @@ Here you can put your change to keep a trace of your work and decisions.
 * Tested and validated on Docker DIND
 * Removed docker socket local and port
 * Validated on local, evenif portainer stack is not deployed (ImageInspectError)
-* Need a part about Rancher
+* Added support for Rancher or Portainer
+
 
 ## Authors
 
@@ -208,3 +209,5 @@ Here you can put your change to keep a trace of your work and decisions.
 * [K3S](https://k3s.io/)
 * [Doc K3S](https://docs.k3s.io/)
 * [Advanced K3S](https://docs.k3s.io/advanced)
+* [Helm CLI Quick Start](https://ranchermanager.docs.rancher.com/getting-started/quick-start-guides/deploy-rancher-manager/helm-cli)
+* [github.com/cert-manager](https://github.com/cert-manager/cert-manager/releases)
