@@ -194,7 +194,7 @@ Here you can put your change to keep a trace of your work and decisions.
 * Tested and validated on Docker DIND
 * Removed docker socket local and port
 * Validated on local, evenif portainer stack is not deployed (ImageInspectError)
-* Added support for Rancher or Portainer
+* Added support for Rancher or Portainer (no customs)
 
 
 ## Authors
