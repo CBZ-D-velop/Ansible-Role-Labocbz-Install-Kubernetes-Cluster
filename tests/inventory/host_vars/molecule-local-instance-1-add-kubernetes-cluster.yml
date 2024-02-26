@@ -1,4 +1,0 @@
----
-ansible_ssh_port: 22
-
-inv_install_kubernetes_cluster_is_manager: true

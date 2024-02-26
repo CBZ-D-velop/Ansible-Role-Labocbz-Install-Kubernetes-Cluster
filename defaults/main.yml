@@ -1,11 +1,15 @@
 ---
-install_kubernetes_cluster_is_manager: false
+install_kubernetes_cluster__is_manager: false
 
-install_kubernetes_cluster_docker_script_version: "20.10"
+install_kubernetes_cluster__docker_script_version: "20.10"
 
-install_kubernetes_cluster_data_dir: "/var/lib/rancher/k3s"
-install_kubernetes_cluster_cluster_cidr: "10.42.0.0/16"
-install_kubernetes_cluster_service_cidr: "10.43.0.0/16"
-install_kubernetes_cluster_service_node_port_range: "30000-32767"
-install_kubernetes_cluster_cluster_dns: "10.43.0.10"
-install_kubernetes_cluster_cluster_domain: "cluster.local"
+install_kubernetes_cluster__data_dir: "/var/lib/rancher/k3s"
+install_kubernetes_cluster__cluster_cidr: "10.42.0.0/16"
+install_kubernetes_cluster__service_cidr: "10.43.0.0/16"
+install_kubernetes_cluster__service_node_port_range: "30000-32767"
+install_kubernetes_cluster__cluster_dns: "10.43.0.10"
+install_kubernetes_cluster__cluster_domain: "cluster.local"
+install_kubernetes_cluster__tls_sans:
+  - "my.server-1.domain.tld"
+  - "my.server-2.domain.tld"
+  - "my.server-3.domain.tld"

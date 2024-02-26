@@ -22,6 +22,8 @@
 
 An Ansible role to install and configure a Kubernetes cluster on your hosts.
 
+This Ansible role simplifies the installation and configuration of Kubernetes using K3S. It detects and installs Docker if necessary, then configures K3S to start a manager node. Next, it retrieves join tokens for both manager and worker nodes, and configures the K3S cluster with specified network and DNS settings. The role also installs Helm for managing Kubernetes packages and deploys a control stack, such as Portainer or Rancher, to facilitate cluster management.
+
 ## Folder structure
 
 By default Ansible will look in each directory within a role for a main.yml file for relevant content (also man.yml and main):
@@ -105,7 +107,21 @@ Some vars a required to run this role:
 
 ```YAML
 ---
-your defaults vars here
+install_kubernetes_cluster__is_manager: false
+
+install_kubernetes_cluster__docker_script_version: "20.10"
+
+install_kubernetes_cluster__data_dir: "/var/lib/rancher/k3s"
+install_kubernetes_cluster__cluster_cidr: "10.42.0.0/16"
+install_kubernetes_cluster__service_cidr: "10.43.0.0/16"
+install_kubernetes_cluster__service_node_port_range: "30000-32767"
+install_kubernetes_cluster__cluster_dns: "10.43.0.10"
+install_kubernetes_cluster__cluster_domain: "cluster.local"
+install_kubernetes_cluster__tls_sans:
+  - "my.server-1.domain.tld"
+  - "my.server-2.domain.tld"
+  - "my.server-3.domain.tld"
+
 ```
 
 The best way is to modify these vars by copy the ./default/main.yml file into the ./vars and edit with your personnals requirements.
@@ -117,13 +133,28 @@ In order to surchage vars, you have multiples possibilities but for mains cases 
 ```YAML
 # From inventory
 ---
-all vars from to put/from your inventory
+inv_install_kubernetes_cluster__is_manager: false
+
+inv_install_kubernetes_cluster__docker_script_version: "20.10"
+
+inv_install_kubernetes_cluster__data_dir: "/var/lib/rancher/k3s"
+inv_install_kubernetes_cluster__cluster_cidr: "10.42.0.0/16"
+inv_install_kubernetes_cluster__service_cidr: "10.43.0.0/16"
+inv_install_kubernetes_cluster__service_node_port_range: "30000-32767"
+inv_install_kubernetes_cluster__cluster_dns: "10.43.0.10"
+inv_install_kubernetes_cluster__cluster_domain: "cluster.local"
+
+#inv_install_kubernetes_cluster__tls_sans:
+#  - "my.server-1.domain.tld"
+#  - "my.server-2.domain.tld"
+#  - "my.server-3.domain.tld"
+
 ```
 
 ```YAML
 # From AWX / Tower
 ---
-all vars from to put/from AWX / Tower
+
 ```
 
 ### Run
@@ -131,8 +162,21 @@ all vars from to put/from AWX / Tower
 To run this role, you can copy the molecule/default/converge.yml playbook and add it into your playbook:
 
 ```YAML
----
-your converge.yml file here
+- name: "Include labocbz.install_kubernetes_cluster"
+  tags:
+    - "labocbz.install_kubernetes_cluster"
+  vars:
+    install_kubernetes_cluster__is_manager: "{{ inv_install_kubernetes_cluster__is_manager }}"
+    install_kubernetes_cluster__docker_script_version: "{{ inv_install_kubernetes_cluster__docker_script_version }}"
+    install_kubernetes_cluster__data_dir: "{{ inv_install_kubernetes_cluster__data_dir }}"
+    install_kubernetes_cluster__cluster_cidr: "{{ inv_install_kubernetes_cluster__cluster_cidr }}"
+    install_kubernetes_cluster__service_cidr: "{{ inv_install_kubernetes_cluster__service_cidr }}"
+    install_kubernetes_cluster__service_node_port_range: "{{ inv_install_kubernetes_cluster__service_node_port_range }}"
+    install_kubernetes_cluster__cluster_dns: "{{ inv_install_kubernetes_cluster__cluster_dns }}"
+    install_kubernetes_cluster__cluster_domain: "{{ inv_install_kubernetes_cluster__cluster_domain }}"
+    install_kubernetes_cluster__tls_sans: "{{ inv_install_kubernetes_cluster__tls_sans }}"
+  ansible.builtin.include_role:
+    name: "labocbz.install_kubernetes_cluster"
 ```
 
 ## Architectural Decisions Records
@@ -142,6 +186,14 @@ Here you can put your change to keep a trace of your work and decisions.
 ### 2024-01-08: First Init
 
 * First init of this role with the bootstrap_role playbook by Lord Robin Crombez
+
+### 2024-02-24: Fix and CI
+
+* Added support for new CI base
+* Edit all vars with __
+* Tested and validated on Docker DIND
+* Removed docker socket local and port
+* Validated on local, evenif portainer stack is not deployed (ImageInspectError)
 
 ## Authors
 

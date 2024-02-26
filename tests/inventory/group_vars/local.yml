@@ -1,11 +1,6 @@
 ---
-inv_install_kubernetes_cluster_is_manager: false
+inv_install_kubernetes_cluster__tls_sans:
+  - "molecule-local-instance-1-install-kubernetes-cluster"
+  - "molecule-local-instance-2-install-kubernetes-cluster"
+  - "molecule-local-instance-3-install-kubernetes-cluster"
 
-inv_install_kubernetes_cluster_docker_script_version: "20.10"
-
-inv_install_kubernetes_cluster_data_dir: "/var/lib/rancher/k3s"
-inv_install_kubernetes_cluster_cluster_cidr: "10.42.0.0/16"
-inv_install_kubernetes_cluster_service_cidr: "10.43.0.0/16"
-inv_install_kubernetes_cluster_service_node_port_range: "30000-32767"
-inv_install_kubernetes_cluster_cluster_dns: "10.43.0.10"
-inv_install_kubernetes_cluster_cluster_domain: "cluster.local"

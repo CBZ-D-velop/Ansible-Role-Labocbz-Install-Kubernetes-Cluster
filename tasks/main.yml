@@ -1,13 +1,20 @@
 ---
+- name: "Check docker-compose command response"
+  register: output_docker
+  changed_when: false
+  ignore_errors: yes
+  ansible.builtin.command: "docker -v"
+
 - name: "Start by install Docker"
   register: output
   changed_when: output.rc != 0
+  when: output_docker.rc != 0
   ansible.builtin.shell: |
-    curl https://releases.rancher.com/install-docker/{{ install_kubernetes_cluster_docker_script_version }}.sh | sh
+    curl https://releases.rancher.com/install-docker/{{ install_kubernetes_cluster__docker_script_version }}.sh | sh
 
 - name: "Init the cluster"
   run_once: yes
-  when: install_kubernetes_cluster_is_manager | default(false)
+  when: install_kubernetes_cluster__is_manager | default(false)
   block:
     - name: "Init the cluster with the command line shell"
       register: output
@@ -16,15 +23,16 @@
         curl -sfL https://get.k3s.io | sh -s - server \
         --cluster-init \
         --docker \
-        --data-dir "{{ install_kubernetes_cluster_data_dir }}" \
-        --cluster-cidr "{{ install_kubernetes_cluster_cluster_cidr }}" \
-        --service-cidr "{{ install_kubernetes_cluster_service_cidr }}" \
-        --service-node-port-range "{{ install_kubernetes_cluster_service_node_port_range }}" \
-        --cluster-dns "{{ install_kubernetes_cluster_cluster_dns }}" \
-        {% for tls_san in install_kubernetes_cluster_tls_sans %}
+        --data-dir "{{ install_kubernetes_cluster__data_dir }}" \
+        --cluster-cidr "{{ install_kubernetes_cluster__cluster_cidr }}" \
+        --service-cidr "{{ install_kubernetes_cluster__service_cidr }}" \
+        --service-node-port-range "{{ install_kubernetes_cluster__service_node_port_range }}" \
+        --cluster-dns "{{ install_kubernetes_cluster__cluster_dns }}" \
+        {% for tls_san in install_kubernetes_cluster__tls_sans %}
         --tls-san "{{ tls_san }}" \
         {% endfor %}
-        --cluster-domain "{{ install_kubernetes_cluster_cluster_domain }}"
+        --cluster-domain "{{ install_kubernetes_cluster__cluster_domain }}"
+
     - name: "Check if server is initialized"
       register: result
       until: "result.status == 401"
@@ -39,13 +47,13 @@
       register: token_agent_output
       changed_when: token_agent_output.rc != 0
       ansible.builtin.shell:
-        cat {{ install_kubernetes_cluster_data_dir }}/server/agent-token
+        cat {{ install_kubernetes_cluster__data_dir }}/server/agent-token
 
     - name: "Get the join server token"
       register: join_node_token
       changed_when: join_node_token.rc != 0
       ansible.builtin.shell:
-        cat {{ install_kubernetes_cluster_data_dir }}/server/node-token
+        cat {{ install_kubernetes_cluster__data_dir }}/server/node-token
 
     - name: "Set facts"
       ansible.legacy.set_fact:
@@ -54,7 +62,7 @@
         server_node: "{{ inventory_hostname }}"
 
 - name: "Join the cluster as SERVER"
-  when: ((install_kubernetes_cluster_is_manager | default(false)) and (inventory_hostname != server_node ))
+  when: ((install_kubernetes_cluster__is_manager | default(false)) and (inventory_hostname != server_node ))
   throttle: 1
   block:
     - name: "Join the cluster as SERVER"
@@ -63,17 +71,17 @@
       ansible.builtin.shell:
         curl -sfL https://get.k3s.io | sh -s - server \
         --docker \
-        --data-dir "{{ install_kubernetes_cluster_data_dir }}" \
-        --cluster-cidr "{{ install_kubernetes_cluster_cluster_cidr }}" \
-        --service-cidr "{{ install_kubernetes_cluster_service_cidr }}" \
-        --service-node-port-range "{{ install_kubernetes_cluster_service_node_port_range }}" \
-        --cluster-dns "{{ install_kubernetes_cluster_cluster_dns }}" \
-        --cluster-domain "{{ install_kubernetes_cluster_cluster_domain }}" \
+        --data-dir "{{ install_kubernetes_cluster__data_dir }}" \
+        --cluster-cidr "{{ install_kubernetes_cluster__cluster_cidr }}" \
+        --service-cidr "{{ install_kubernetes_cluster__service_cidr }}" \
+        --service-node-port-range "{{ install_kubernetes_cluster__service_node_port_range }}" \
+        --cluster-dns "{{ install_kubernetes_cluster__cluster_dns }}" \
+        --cluster-domain "{{ install_kubernetes_cluster__cluster_domain }}" \
         --server "https://{{ server_node }}:6443" \
         --token "{{ join_node_token }}"
 
 - name: "Join the cluster as AGENT"
-  when: not (install_kubernetes_cluster_is_manager | default(false))
+  when: not (install_kubernetes_cluster__is_manager | default(false))
   throttle: 1
   block:
     - name: "Join the cluster as AGENT"
@@ -82,12 +90,12 @@
       ansible.builtin.shell:
         curl -sfL https://get.k3s.io | sh -s - agent \
         --docker \
-        --data-dir "{{ install_kubernetes_cluster_data_dir }}" \
+        --data-dir "{{ install_kubernetes_cluster__data_dir }}" \
         --server "https://{{ server_node }}:6443" \
         --token "{{ join_agent_token }}"
 
 - name: "Install Helm and deploy Portainer"
-  when: install_kubernetes_cluster_is_manager
+  when: install_kubernetes_cluster__is_manager
   block:
     - name: "Get the kubeconfig from first server"
       when: inventory_hostname == server_node
