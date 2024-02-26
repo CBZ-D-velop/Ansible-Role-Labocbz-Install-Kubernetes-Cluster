@@ -16,5 +16,10 @@
         install_kubernetes_cluster__cluster_dns: "{{ inv_install_kubernetes_cluster__cluster_dns }}"
         install_kubernetes_cluster__cluster_domain: "{{ inv_install_kubernetes_cluster__cluster_domain }}"
         install_kubernetes_cluster__tls_sans: "{{ inv_install_kubernetes_cluster__tls_sans }}"
+        install_kubernetes_cluster__use_portainer: "{{ inv_install_kubernetes_cluster__use_portainer }}"
+        install_kubernetes_cluster__use_rancher: "{{ inv_install_kubernetes_cluster__use_rancher }}"
+        install_kubernetes_cluster__cert_manager_version: "{{ inv_install_kubernetes_cluster__cert_manager_version }}"
+        install_kubernetes_cluster__rancher_hostname: "{{ inv_install_kubernetes_cluster__rancher_hostname }}"
+        install_kubernetes_cluster__rancher_admin_password: "{{ inv_install_kubernetes_cluster__rancher_admin_password }}"
       ansible.builtin.include_role:
         name: "labocbz.install_kubernetes_cluster"

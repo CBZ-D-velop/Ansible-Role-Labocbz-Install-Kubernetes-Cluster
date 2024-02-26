@@ -13,3 +13,9 @@ install_kubernetes_cluster__tls_sans:
   - "my.server-1.domain.tld"
   - "my.server-2.domain.tld"
   - "my.server-3.domain.tld"
+
+install_kubernetes_cluster__use_portainer: true
+install_kubernetes_cluster__use_rancher: false
+install_kubernetes_cluster__cert_manager_version: "v1.13.4"
+install_kubernetes_cluster__rancher_hostname: "my-rancher.domain.tld"
+install_kubernetes_cluster__rancher_admin_password: "admin"

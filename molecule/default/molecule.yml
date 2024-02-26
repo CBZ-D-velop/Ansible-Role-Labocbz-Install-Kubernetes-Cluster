@@ -12,8 +12,9 @@ platforms:
     #image: "robincbz/debian-12-ansible:latest"
     image: "robincbz/docker-dind-ansible:latest"
     hostname: "molecule-local-instance-1-install-kubernetes-cluster"
-    #published_ports:
-    #  - "0.0.0.0:8181:8181/tcp"
+    published_ports:
+      - "0.0.0.0:80:80/tcp"
+      - "0.0.0.0:443:443/tcp"
     privileged: true
     pre_build_image: true
     command: "/sbin/init"

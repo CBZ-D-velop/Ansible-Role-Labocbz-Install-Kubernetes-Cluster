@@ -14,3 +14,9 @@ inv_install_kubernetes_cluster__cluster_domain: "cluster.local"
 #  - "my.server-1.domain.tld"
 #  - "my.server-2.domain.tld"
 #  - "my.server-3.domain.tld"
+
+inv_install_kubernetes_cluster__use_portainer: false
+inv_install_kubernetes_cluster__use_rancher: true
+inv_install_kubernetes_cluster__cert_manager_version: "v1.13.4"
+inv_install_kubernetes_cluster__rancher_hostname: "localhost"
+inv_install_kubernetes_cluster__rancher_admin_password: "admin"
