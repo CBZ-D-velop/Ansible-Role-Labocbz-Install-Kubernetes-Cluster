@@ -13,14 +13,8 @@
     cmd: set -o pipefail && curl https://releases.rancher.com/install-docker/{{ install_kubernetes_cluster__docker_script_version }}.sh | sh
     executable: /bin/bash
 
-- name: "Install packages"
-  register: output
-  changed_when: output.msg != "package(s) already installed"
-  ansible.builtin.package:
-    name:
-      - "python3-pip"
-
 - name: "Install Docker PIP module"
+  when: ansible_distribution == "Ubuntu" or ansible_distribution == "Debian"
   ansible.builtin.pip:
     name:
       - "pyyaml"
