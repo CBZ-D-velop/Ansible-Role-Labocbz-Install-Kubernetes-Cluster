@@ -9,9 +9,9 @@
   register: output
   changed_when: output.rc != 0
   when: output_docker.rc != 0
-  ansible.builtin.shell: |
-    set -o pipefail
-    curl https://releases.rancher.com/install-docker/{{ install_kubernetes_cluster__docker_script_version }}.sh | sh
+  ansible.builtin.shell:
+    cmd: set -o pipefail && curl https://releases.rancher.com/install-docker/{{ install_kubernetes_cluster__docker_script_version }}.sh | sh
+    executable: /bin/bash
 
 - name: "Init the cluster"
   run_once: yes
@@ -20,20 +20,22 @@
     - name: "Init the cluster with the command line shell"
       register: output
       changed_when: output.rc != 0
-      ansible.builtin.shell: |
-        set -o pipefail
-        curl -sfL https://get.k3s.io | sh -s - server \
-        --cluster-init \
-        --docker \
-        --data-dir "{{ install_kubernetes_cluster__data_dir }}" \
-        --cluster-cidr "{{ install_kubernetes_cluster__cluster_cidr }}" \
-        --service-cidr "{{ install_kubernetes_cluster__service_cidr }}" \
-        --service-node-port-range "{{ install_kubernetes_cluster__service_node_port_range }}" \
-        --cluster-dns "{{ install_kubernetes_cluster__cluster_dns }}" \
-        {% for tls_san in install_kubernetes_cluster__tls_sans %}
-        --tls-san "{{ tls_san }}" \
-        {% endfor %}
-        --cluster-domain "{{ install_kubernetes_cluster__cluster_domain }}"
+      ansible.builtin.shell:
+        executable: /bin/bash
+        cmd: |
+          set -o pipefail
+          curl -sfL https://get.k3s.io | sh -s - server \
+          --cluster-init \
+          --docker \
+          --data-dir "{{ install_kubernetes_cluster__data_dir }}" \
+          --cluster-cidr "{{ install_kubernetes_cluster__cluster_cidr }}" \
+          --service-cidr "{{ install_kubernetes_cluster__service_cidr }}" \
+          --service-node-port-range "{{ install_kubernetes_cluster__service_node_port_range }}" \
+          --cluster-dns "{{ install_kubernetes_cluster__cluster_dns }}" \
+          {% for tls_san in install_kubernetes_cluster__tls_sans %}
+          --tls-san "{{ tls_san }}" \
+          {% endfor %}
+          --cluster-domain "{{ install_kubernetes_cluster__cluster_domain }}"
 
     - name: "Check if server is initialized"
       register: result
@@ -70,18 +72,19 @@
     - name: "Join the cluster as SERVER"
       register: output
       changed_when: output.rc != 0
-      ansible.builtin.shell: |
-        set -o pipefail
-        curl -sfL https://get.k3s.io | sh -s - server \
-        --docker \
-        --data-dir "{{ install_kubernetes_cluster__data_dir }}" \
-        --cluster-cidr "{{ install_kubernetes_cluster__cluster_cidr }}" \
-        --service-cidr "{{ install_kubernetes_cluster__service_cidr }}" \
-        --service-node-port-range "{{ install_kubernetes_cluster__service_node_port_range }}" \
-        --cluster-dns "{{ install_kubernetes_cluster__cluster_dns }}" \
-        --cluster-domain "{{ install_kubernetes_cluster__cluster_domain }}" \
-        --server "https://{{ server_node }}:6443" \
-        --token "{{ join_node_token }}"
+      ansible.builtin.shell:
+        executable: /bin/bash
+        cmd: |
+          curl -sfL https://get.k3s.io | sh -s - server \
+          --docker \
+          --data-dir "{{ install_kubernetes_cluster__data_dir }}" \
+          --cluster-cidr "{{ install_kubernetes_cluster__cluster_cidr }}" \
+          --service-cidr "{{ install_kubernetes_cluster__service_cidr }}" \
+          --service-node-port-range "{{ install_kubernetes_cluster__service_node_port_range }}" \
+          --cluster-dns "{{ install_kubernetes_cluster__cluster_dns }}" \
+          --cluster-domain "{{ install_kubernetes_cluster__cluster_domain }}" \
+          --server "https://{{ server_node }}:6443" \
+          --token "{{ join_node_token }}"
 
 - name: "Join the cluster as AGENT"
   when: not (install_kubernetes_cluster__is_manager | default(false))
@@ -91,12 +94,13 @@
       register: output
       changed_when: output.rc != 0
       ansible.builtin.shell:
-        set -o pipefail
-        curl -sfL https://get.k3s.io | sh -s - agent \
-        --docker \
-        --data-dir "{{ install_kubernetes_cluster__data_dir }}" \
-        --server "https://{{ server_node }}:6443" \
-        --token "{{ join_agent_token }}"
+        executable: /bin/bash
+        cmd: |
+          curl -sfL https://get.k3s.io | sh -s - agent \
+          --docker \
+          --data-dir "{{ install_kubernetes_cluster__data_dir }}" \
+          --server "https://{{ server_node }}:6443" \
+          --token "{{ join_agent_token }}"
 
 - name: "Install Helm"
   when: install_kubernetes_cluster__is_manager | default(false)
@@ -135,9 +139,11 @@
     - name: "Install Helm"
       register: output
       changed_when: output.rc != 0
-      ansible.builtin.shell: |
-        set -o pipefail
-        curl -fsSL https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash
+      ansible.builtin.shell:
+        executable: /bin/bash
+        cmd: |
+          set -o pipefail
+          curl -fsSL https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash
 
 - name: "Handle controllers"
   when: ansible_distribution == "Ubuntu" or ansible_distribution == "Debian"
