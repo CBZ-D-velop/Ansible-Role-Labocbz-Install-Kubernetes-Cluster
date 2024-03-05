@@ -75,6 +75,7 @@
       ansible.builtin.shell:
         executable: /bin/bash
         cmd: |
+          set -o pipefail
           curl -sfL https://get.k3s.io | sh -s - server \
           --docker \
           --data-dir "{{ install_kubernetes_cluster__data_dir }}" \
@@ -96,6 +97,7 @@
       ansible.builtin.shell:
         executable: /bin/bash
         cmd: |
+          set -o pipefail
           curl -sfL https://get.k3s.io | sh -s - agent \
           --docker \
           --data-dir "{{ install_kubernetes_cluster__data_dir }}" \
