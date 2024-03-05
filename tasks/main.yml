@@ -15,10 +15,18 @@
 
 - name: "Install Docker PIP module"
   when: ansible_distribution == "Ubuntu" or ansible_distribution == "Debian"
-  ansible.builtin.pip:
-    name:
-      - "pyyaml"
-      - "docker"
+  block:
+    - name: "Move EXTERNALLY-MANAGED"
+      changed_when: false
+      ignore_errors: yes
+      ansible.builtin.cmd:
+        mv /usr/lib/python3.11/EXTERNALLY-MANAGED /usr/lib/python3.11/EXTERNALLY-MANAGED.old
+
+    - name: "Install packages"
+      ansible.builtin.pip:
+        name:
+          - "pyyaml"
+          - "docker"
 
 - name: "Init the cluster"
   run_once: yes
