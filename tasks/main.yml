@@ -169,20 +169,18 @@
     - name: "Use Portainer as controller"
       when: (install_kubernetes_cluster__is_manager | default(false)) and ((install_kubernetes_cluster__use_portainer | default(false)) and not (install_kubernetes_cluster__use_rancher | default(false)))
       block:
-        - name: "Import portainer.yml manifest file"
-          ansible.builtin.template:
-            src: "templates/portainer.yml.j2"
-            dest: "/etc/rancher/portainer.yml"
-            owner: "root"
-            group: "root"
-            mode: "0700"
+        - name: "Add Portainer repos"
+          kubernetes.core.helm_repository:
+            name: "portainer"
+            repo_url: "https://portainer.github.io/k8s/"
+            force_update: true
 
         - name: "Install Portainer with manifest / kubectl"
           register: output
           changed_when: output.rc != 0
           run_once: yes
           ansible.builtin.shell: |
-            kubectl apply -n portainer -f /etc/rancher/portainer.yml
+            kubectl apply -n portainer -f https://downloads.portainer.io/ce2-19/portainer.yaml
 
     - name: "Use Rancher as controller"
       when: (install_kubernetes_cluster__is_manager | default(false)) and ((install_kubernetes_cluster__use_rancher | default(false)) and not (install_kubernetes_cluster__use_portainer | default(false)))
