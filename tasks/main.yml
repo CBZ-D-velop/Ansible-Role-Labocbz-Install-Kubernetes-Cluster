@@ -2,7 +2,7 @@
 - name: "Check Docker command response"
   register: output_docker
   changed_when: false
-  ignore_errors: yes
+  ignore_errors: true
   ansible.builtin.command: "docker -v"
 
 - name: "Start by install Docker"
@@ -19,7 +19,7 @@
     - name: "Move EXTERNALLY-MANAGED"
       register: output
       changed_when: false
-      ignore_errors: yes
+      ignore_errors: true
       ansible.builtin.command:
         mv /usr/lib/python3.11/EXTERNALLY-MANAGED /usr/lib/python3.11/EXTERNALLY-MANAGED.old
 
@@ -30,7 +30,7 @@
           - "docker"
 
 - name: "Init the cluster"
-  run_once: yes
+  run_once: true
   when: install_kubernetes_cluster__is_manager | default(false)
   block:
     - name: "Init the cluster with the command line shell"
@@ -178,7 +178,7 @@
         - name: "Install Portainer with manifest / kubectl"
           register: output
           changed_when: output.rc != 0
-          run_once: yes
+          run_once: true
           ansible.builtin.shell: |
             kubectl apply -n portainer -f https://downloads.portainer.io/ce2-19/portainer.yaml
 
@@ -200,22 +200,22 @@
         - name: "Create namespace"
           register: output
           changed_when: output.rc != 0
-          ignore_errors: yes
-          run_once: yes
+          ignore_errors: true
+          run_once: true
           ansible.builtin.command: |
             kubectl create namespace cattle-system
 
         - name: "Create add cert-manager"
           register: output
           changed_when: output.rc != 0
-          run_once: yes
+          run_once: true
           ansible.builtin.command: |
             kubectl apply -f https://github.com/cert-manager/cert-manager/releases/download/{{ install_kubernetes_cluster__cert_manager_version }}/cert-manager.crds.yaml
 
         - name: "Install cert-manager"
           register: output
           changed_when: output.rc != 0
-          run_once: yes
+          run_once: true
           ansible.builtin.command: |
             helm install cert-manager jetstack/cert-manager \
               --namespace cert-manager \
@@ -224,7 +224,7 @@
         - name: "Deploy Rancher with Helm"
           register: output
           changed_when: output.rc != 0
-          run_once: yes
+          run_once: true
           ansible.builtin.command: |
             helm install rancher rancher-latest/rancher \
               --namespace cattle-system \
