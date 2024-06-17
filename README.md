@@ -107,6 +107,7 @@ Some vars a required to run this role:
 ```YAML
 ---
 install_kubernetes_cluster__is_manager: false
+install_kubernetes_cluster__portainer_host: "{{ ansible_hostname }}"
 
 install_kubernetes_cluster__docker_script_version: "20.10"
 
@@ -133,6 +134,7 @@ In order to surchage vars, you have multiples possibilities but for mains cases 
 # From inventory
 ---
 inv_install_kubernetes_cluster__is_manager: false
+inv_install_kubernetes_cluster__portainer_host: "{{ ansible_hostname }}"
 
 inv_install_kubernetes_cluster__docker_script_version: "20.10"
 

@@ -181,6 +181,7 @@
           run_once: true
           ansible.builtin.shell: |
             kubectl apply -n portainer -f https://downloads.portainer.io/ce2-19/portainer.yaml
+            kubectl patch deployments -n portainer portainer -p '{"spec": {"template": {"spec": {"nodeSelector": {"kubernetes.io/hostname": "{{ install_kubernetes_cluster__portainer_host }}"}}}}}'
 
     - name: "Use Rancher as controller"
       when: (install_kubernetes_cluster__is_manager | default(false)) and ((install_kubernetes_cluster__use_rancher | default(false)) and not (install_kubernetes_cluster__use_portainer | default(false)))

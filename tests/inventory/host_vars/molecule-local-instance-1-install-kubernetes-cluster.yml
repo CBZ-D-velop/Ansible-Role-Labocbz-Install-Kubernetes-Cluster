@@ -2,3 +2,4 @@
 ansible_ssh_port: 22
 
 inv_install_kubernetes_cluster__is_manager: true
+inv_install_kubernetes_cluster__portainer_host: "{{ ansible_hostname }}"
