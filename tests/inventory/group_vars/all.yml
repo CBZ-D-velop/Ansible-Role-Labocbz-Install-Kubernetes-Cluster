@@ -1,5 +1,6 @@
 ---
 inv_install_kubernetes_cluster__is_manager: false
+#inv_install_kubernetes_cluster__portainer_host: "my-portainer-host"
 
 inv_install_kubernetes_cluster__docker_script_version: "20.10"
 

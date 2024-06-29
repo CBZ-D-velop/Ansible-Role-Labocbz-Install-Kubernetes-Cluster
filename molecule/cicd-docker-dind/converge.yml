@@ -21,5 +21,6 @@
         install_kubernetes_cluster__cert_manager_version: "{{ inv_install_kubernetes_cluster__cert_manager_version }}"
         install_kubernetes_cluster__rancher_hostname: "{{ inv_install_kubernetes_cluster__rancher_hostname }}"
         install_kubernetes_cluster__rancher_admin_password: "{{ inv_install_kubernetes_cluster__rancher_admin_password }}"
+        install_kubernetes_cluster__portainer_host: "{{ inv_install_kubernetes_cluster__portainer_host }}"
       ansible.builtin.include_role:
         name: "labocbz.install_kubernetes_cluster"

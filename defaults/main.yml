@@ -1,5 +1,6 @@
 ---
 install_kubernetes_cluster__is_manager: false
+install_kubernetes_cluster__portainer_host: "{{ ansible_hostname }}"
 
 install_kubernetes_cluster__docker_script_version: "20.10"
 
